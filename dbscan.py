@@ -12,7 +12,7 @@
 #   Continue the process until all of the points have been processed.
 #
 import sys
-sys.path.append("C:\Users\Alienware\Desktop\DM Assignment\DM-Git\isclust")
+sys.path.append(".\isclust")
 
 import math
 import msvcrt
@@ -116,7 +116,7 @@ if __name__ == '__main__':
   #data = [[0,1,1], [0,1, 2], [0,1,1.5], [0, 5, 4], [0, 4.5, 4], [0, 4, 4.8]]
 
   Eps = 1.5
-  MinPts = 5
+  MinPts = 3
   centroids = dbscan(db, Eps, MinPts, gnuplot)
 
   #Eps = 3
