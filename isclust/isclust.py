@@ -48,7 +48,7 @@ def getGnuPlot():
     gnuplot_exe = "/usr/bin/gnuplot"
   else:
     # example for windows
-    gnuplot_exe = r".\gnuplot\pgnuplot.exe"
+    gnuplot_exe = r".\isclust\gnuplot\pgnuplot.exe"
 
   assert os.path.exists(gnuplot_exe),"gnuplot executable not found"
   gnuplot = Popen(gnuplot_exe,stdin = PIPE).stdin
