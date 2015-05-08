@@ -12,7 +12,7 @@
 #   Continue the process until all of the points have been processed.
 #
 import sys
-sys.path.append("Z:/250G/Teaching/_Data Mining/prog/isclust")
+sys.path.append("C:\Users\Alienware\Desktop\DM Assignment\DM-Git\isclust")
 
 import math
 import msvcrt
@@ -24,6 +24,8 @@ import sets
 # Cluster data
 # data: a list of objects. Each object is a list. The first attribute is the cluster label
 #
+
+
 def dbscan(data, Eps, MinPts, gnuplot):
 
   clusters = []
