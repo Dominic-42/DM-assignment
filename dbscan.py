@@ -1,124 +1,124 @@
-# Algorithm
-#
-# DBSCAN(data, k)
-#   Arbitrary select a point p with label Unknown
-#   If p is a border point (non-core point), label it as NOISE:
-#      no points are density-reachable from p and DBSCAN visits the next point of the database.
-#   If p is a core point, a cluster is formed by
-#      Retrieving all points density-reachable (dr) from p w.r.t. Eps and MinPts:
-#   retrieve all ddr points from p, retrieve all ddr points of the ddr points,
-#   Labeling all retrieved points with the cluster label.
-#   Merge the current cluster to existing cluster if find any dr point that is already a member of a cluster
-#   Continue the process until all of the points have been processed.
-#
-import sys
-sys.path.append("C:\Users\Alienware\Desktop\DM Assignment\DM-Git\isclust")
-
 import math
-import msvcrt
-import isclust
-import random
-import time
-import sets
-
-# Cluster data
-# data: a list of objects. Each object is a list. The first attribute is the cluster label
-#
 
 
-def dbscan(data, Eps, MinPts, gnuplot):
+##############################################################################
+# functions for DBSCAN clustering
 
-  clusters = []
-  clusterId = 1
+# data parameter: list of 2 item lists (features) to be clustered
+# returns: clusters, noise
+def dbscan(data, epsilon, minimumObjects, useOptimization = False):
+    UNASSIGNED_LABEL = -1   # label for objects that haven't been assigned to a cluster or marked as noise
+    NOISE_LABEL = 0         # label for noise objects
+    clusterLabel = 0        # label for objects of a cluster, the label will be incremented for each new clusters
 
-  isclust.plotDBSCAN(gnuplot, data, clusters, "X", "Y", 0, 10, 0, 10, "DBSCAN")
-  if( isclust.checkKey() ):
-    return []
+    labeledObjects = [[UNASSIGNED_LABEL] + i for i in data]  # the first attribute of each object represents
+    #                                                          which label the object is assigned to
 
-  while(1):
-    for p in data:
-      cluster,mergeList = findAllDrs(clusterId, p, data, Eps, MinPts)
-      if( len(cluster) > 0 ):
-        # Merge cluster
-        mergedCluster = cluster
-        mergeList = sets.Set(mergeList)
-        for cid in mergeList:
-          mergedCluster += clusters[cid-1]
-          for d in clusters[cid-1]:
-            d[0] = clusterId
-          clusters[cid-1] = []
+    indexingGrid = divideDataInGrid(labeledObjects, epsilon) if useOptimization else None
 
-        # append the current cluster to the cluster set
-        clusters.append(mergedCluster)
-        clusterId += 1
+    for labelObject in labeledObjects:
+        if labelObject[0] != UNASSIGNED_LABEL:
+            continue
 
-        isclust.plotDBSCAN(gnuplot, data, clusters, "X", "Y", 0, 10, 0, 10, "DBSCAN")
-        if( isclust.checkKey() ):
-          return []
+        #                 directly density reachable
+        neighborObjects = optimizedRetrieveNeighbors(labeledObjects, indexingGrid, labelObject, epsilon)
 
-    if( isclust.checkKey() ):
-      return []
+        if len(neighborObjects) < minimumObjects:
+            labelObject[0] = NOISE_LABEL
+        else:
+            # get new cluster
+            clusterLabel += 1
+            labelObject[0] = clusterLabel  # initial object from which a cluster is created and starts expanding if possible
+            unassignedObjects = neighborObjects  # objects that haven't been handled yet
 
-  return clusters
+            # assigned all neighbors (directly density reachable) to cluster
+            for neighborObject in neighborObjects:
+                neighborObject[0] = clusterLabel
 
-# Find all density reachable points from a core point p
-def findAllDrs(clusterId, p, data, Eps, MinPts):
-  if( p[0] > 0 ): # already assigned
-    return [],[]
+            # look for rest of density reachable objects
+            while not len(unassignedObjects) == 0:
+                labelObject = unassignedObjects.pop()
+                neighborObjects = optimizedRetrieveNeighbors(labeledObjects, indexingGrid, labelObject, epsilon)
 
-  ddrs,mergeList = findAllDdrs(clusterId, p, data, Eps, MinPts)
-  #print "ddrs", ddrs
-  ddrs2 = []
-  for q in ddrs:
-    d,m = findAllDrs(clusterId, q, data, Eps, MinPts)
-    ddrs += d
-    mergeList += m
-  return ddrs, mergeList
+                if len(neighborObjects) >= minimumObjects:
+                    for neighborObjects in neighborObjects:
+                        if neighborObjects[0] <= 0:  # not in a cluster
+                            neighborObjects[0] = clusterLabel
+                            unassignedObjects.append(neighborObjects)
 
-# find all directly density reachable points from a core point p
-def findAllDdrs(clusterId, p, data, Eps, MinPts):
-  ddrs = []
-  mergeList = []
-  NptsNo = 0
+    return getClusters(data, labeledObjects, clusterLabel, NOISE_LABEL)
 
-  # check if p is a core point
-  for i in data:
-    if(i is p):
-      continue
-    d = isclust.disimilarity(p,i)
-    if( d < Eps ):
-      NptsNo += 1
-      ddrs.append(i)
+# assign data to clusters or noise list according to their labels
+# return: clusters and noise list
+def getClusters(data, labeledObjects, clusterNumber, NOISE_LABEL):
+    clusters = [[] for i in range(clusterNumber)]
+    noise = []
+    for i, object in enumerate(labeledObjects):
+        if object[0] == NOISE_LABEL:
+            noise.append(data[i])
+        else:
+            clusters[object[0] - 1].append(data[i])
 
-  if( NptsNo >= MinPts ): # core point
-    cluster = []
-    p[0] = clusterId
-    for j in ddrs:
-      if( j[0] <= 0):
-        j[0] = clusterId
-        cluster.append(j)
-      else:
-        mergeList.append(j[0])
-    return cluster,mergeList
-  else:
-    return [],[]
+    return clusters, noise
 
-if __name__ == '__main__':
-  gnuplot = isclust.getGnuPlot()
-  time.sleep(1)
+# retrieve all neighbors within a radius around a object
+def retrieveNeighbors(labeledObjects, labelObject, radius):
+    neighbors = []
 
-  sigma = 0.5
-  NumPoints = 20
-  db1 = isclust.genDataXY(NumPoints, sigma, 2, 2) # return a list of lists. Each list [label, x0, x1,....]
-  db2 = isclust.genDataXY(NumPoints, sigma, 6, 6)
-  db3 = isclust.genDataXY(NumPoints, sigma, 2, 6)
-  db = db1 + db2 + db3
-  #data = [[0,1,1], [0,1, 2], [0,1,1.5], [0, 5, 4], [0, 4.5, 4], [0, 4, 4.8]]
+    for potentialNeighbor in labeledObjects:
+        if labelObject == potentialNeighbor:
+            continue
+        if euclideanDistance(labelObject[1:3], potentialNeighbor[1:3]) <= radius:
+            neighbors.append(potentialNeighbor)
 
-  Eps = 1.5
-  MinPts = 5
-  centroids = dbscan(db, Eps, MinPts, gnuplot)
+    return neighbors
 
-  #Eps = 3
-  #MinPts = 5
-  # centroids = dbscan(db, Eps, MinPts, gnuplot)
+def euclideanDistance(object1, object2):
+    x1 = object1[0]
+    y1 = object1[1]
+    x2 = object2[0]
+    y2 = object2[1]
+
+    return math.sqrt((x1-x2)**2 + (y1-y2)**2)
+
+
+##############################################################################
+# functions for optimization:
+# pre index the data into grids and get objects from surrounding grid cells of the cell an object is in
+# to reduce the number of potential neighbors the DBSCAN has to search for
+
+def getPotentialNeighbors(grid, labelObject, epsilon):
+    potentialNeighbors = []
+    xIndex = calculateGridIndex(labelObject[1], epsilon)
+    yIndex = calculateGridIndex(labelObject[2], epsilon)
+    gridBoundary = len(grid)
+
+    # get surrounding grid cells
+    for x in range(xIndex - 1, xIndex + 2):
+        for y in range(yIndex - 1, yIndex + 2):
+            if x in range(gridBoundary) and y in range(gridBoundary):
+                potentialNeighbors += (grid[x][y])
+
+    return potentialNeighbors
+
+def calculateGridIndex(value, epsilon):
+    return int(value * 1/epsilon)  # get floor value
+
+# use for grid indexing
+# return: grid, 2 dimensional list
+def divideDataInGrid(labeledObjects, epsilon):
+    gridSize = int(10 / epsilon)  # get floor value, as integer for index usage
+    grid = [[[] for x in range(gridSize)] for x in range(gridSize)]
+
+    for labelObject in labeledObjects:
+        x = calculateGridIndex(labelObject[1], epsilon)
+        y = calculateGridIndex(labelObject[2], epsilon)
+        grid[x][y].append(labelObject)
+
+    return grid
+
+def optimizedRetrieveNeighbors(labeledObjects, grid, labelObject, radius):
+    if grid is not None:
+        labeledObjects = getPotentialNeighbors(grid, labelObject, radius)
+
+    return retrieveNeighbors(labeledObjects, labelObject, radius)
