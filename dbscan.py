@@ -39,7 +39,7 @@ else:
 	# retrieve data
 	data_file  = open('python_run.csv', "rb") # Opens the specific .csv file. Can add path if in another folder.
 	reader = csv.reader(data_file) # Reader from csv module
-	data = []  # Array to store data
+	data = [[]]  # Array to store data
     
 	for row in reader:
 		data.append(row.[0], row[1])
@@ -47,8 +47,8 @@ else:
 	# Format = data [], example for printing first row is
 	# print "My first row is: " + data[0][0] + " and " + data[0][1]
 	# parameters for plotting the data
-	Label = "Rate"
-	yLabel = "StDev"
+	xLabel = "Cancer rate"
+	yLabel = "Standard Deviation"
 	axisSize = 1
 	data_file.close() # if we need to close data
 
