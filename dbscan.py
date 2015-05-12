@@ -42,7 +42,7 @@ else:
 	data = [[]]  # Array to store data
     
 	for row in reader:
-		data.append(row.[0], row[1])
+		data.append(row[0], row[1])
 	# Data has no headers, just two columns
 	# Format = data [], example for printing first row is
 	# print "My first row is: " + data[0][0] + " and " + data[0][1]
